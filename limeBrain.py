@@ -133,8 +133,9 @@ if __name__ == '__main__':
     brains = LimeBrain(sizeo, sizeo, sized, epoch=5, name='frankenstein')
     print('Created Frankenstein with sizeo {0} and sized {1}'.format(sizeo, sized))
     brains.train(origin, dest)
-    data, size = readWave('440.wav', division)
-    writeWave('PruebaFinal.wav', brains.run(data), size, division) 
     brains.dumpBrain()
+    data, size = readWave('/trainer/samples-44100/1/Piano/-3-100-o.wav', division)
+    writeWave('PruebaFinal.wav', brains.run(data), size, division) 
+    
 
 
