@@ -47,7 +47,7 @@ def inverseFastFourier(filtereddata):
         filteredRealWrite[i]=np.int16(np.rint(\
 	    np.real(np.sign(filteredComplexWrite[i]))*\
 	    np.abs(filteredComplexWrite[i])))
-
+    
     filteredRealWrite=np.array(filteredRealWrite)
     #toWrite=filteredRealWrite[0]
     #for i in range(1, len(filteredRealWrite)):

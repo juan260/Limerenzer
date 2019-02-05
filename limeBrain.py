@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 from libLoader import *
 import random
-import pickle
+import dill
 import os
 import shutil
 
@@ -20,15 +20,29 @@ class LimeBrain:
         self.output_dim=output_dim
         self.name=name
 
-        input_data=tf.placeholder(dtype=tf.float32, shape=[None, input_dim])
-        output_data=tf.placeholder(dtype=tf.float32, shape=[None, output_dim])
+        self.buildBrain()
+
+        path='./data/'+name
+        try:
+            os.mkdir('./data')
+        except OSError:
+            pass
+        try:
+            os.mkdir(path)
+        except OSError:
+            shutil.rmtree(path)
+            os.mkdir(path)
+
+    def buildBrain(self):
+        input_data=tf.placeholder(dtype=tf.float32, shape=[None, self.input_dim])
+        output_data=tf.placeholder(dtype=tf.float32, shape=[None, self.output_dim])
         with tf.name_scope('encode'):
             #weights=tf.Variable(tf.complex(
             #        tf.random_normal([input_dim, hidden_dim]),
             #        tf.random_normal([input_dim, hidden_dim])),
             #    dtype=tf.float32, name='weights')
-            weights=tf.Variable(tf.random_normal([input_dim, hidden_dim]), dtype=tf.float32, name='weights')
-            biases=tf.Variable(tf.zeros([hidden_dim], dtype=tf.float32), name='biases')
+            weights=tf.Variable(tf.random_normal([self.input_dim, self.hidden_dim]), dtype=tf.float32, name='weights')
+            biases=tf.Variable(tf.zeros([self.hidden_dim], dtype=tf.float32), name='biases')
             encoded = tf.nn.tanh(tf.matmul(input_data, weights) + biases)
 
         with tf.name_scope('decode'):
@@ -36,8 +50,8 @@ class LimeBrain:
             #        tf.random_normal([input_dim, hidden_dim]),
             #        tf.random_normal([input_dim, hidden_dim])),
             #    dtype=tf.float32, name='weights')
-            weights=tf.Variable(tf.random_normal([hidden_dim, output_dim]), dtype=tf.float32, name='weights')
-            biases=tf.Variable(tf.zeros([output_dim], dtype=tf.float32), name='biases')
+            weights=tf.Variable(tf.random_normal([self.hidden_dim, self.output_dim]), dtype=tf.float32, name='weights')
+            biases=tf.Variable(tf.zeros([self.output_dim], dtype=tf.float32), name='biases')
             decoded = tf.matmul(encoded,weights)+biases
         
         self.input_data=input_data
@@ -49,16 +63,6 @@ class LimeBrain:
         self.train_op=tf.train.RMSPropOptimizer(self.learning_rate).minimize(self.loss)
         #self.train_op=tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss)
         self.saver=tf.train.Saver()
-        path='./data/'+name
-        try:
-            os.mkdir('./data')
-        except OSError:
-            pass
-        try:
-            os.mkdir(path)
-        except OSError:
-            shutil.rmtree(path)
-            os.mkdir(path)
 
     def train(self, in_train_data, out_train_data):
         for i in range(len(in_train_data)):
@@ -92,53 +96,84 @@ class LimeBrain:
     def run(self, dataIn):
         if not self.trained:
             raise BrainError('The model has not been trained yet!!')
-        if len(dataIn) != self.input_dim:
-            raise BrainError('The input data doesn\'t match the input neuron size')
+        if len(dataIn[0]) != self.input_dim:
+            raise BrainError('The input data doesn\'t match the input neuron size \
+Expected {0} and got {1}'.format(len(dataIn), self.input_dim))
 
         with tf.Session() as sess:
-            sess.saver.restore(sess, './data/'+self.name+'/model.ckpt')
-            return sess.run([self.decoded],
+            self.saver.restore(sess, './data/'+self.name+'/model.ckpt')
+            result=  sess.run([self.decoded],
                 feed_dict={self.input_data : dataIn})
+        return result[0]
     
     def dumpBrain(self, *name):
+        input_data=self.input_data
+        output_data=self.output_data
+        saver=self.saver
+        encoded=self.encoded
+        decoded=self.decoded
+        loss=self.loss
+        train_op=self.train_op
+        self.input_data=None
+        self.output_data=None
+        self.saver=None
+        self.encoded=None
+        self.decoded=None
+        self.loss=None
+        self.train_op=None
         if len(name)==0:
             directory=self.name
         else:
             directory=name[0]
-        with open('./data/'+directory+'/brain.obj') as f:
-            pickle.dump(self, f)
+        #if not os.path.isfile('./data/'+directory+'/brain.obj'):
+        
+        with open('./data/'+directory+'/brain.obj', 'w') as f:
+            dill.dump(self, f)
+        self.input_data=input_data
+        self.output_data=output_data
+        self.saver=saver
+        self.encoded=encoded
+        self.decoded=decoded
+        self.loss=loss
+        self.train_op=train_op
 
 def loadBrain(name):
     with open('./data/'+name+'/brain.obj') as f:
-        loaded= pickle.load(f)
+        loaded= dill.load(f)
+    loaded.buildBrain()
     return loaded
 
 if __name__ == '__main__':
     lib= 'trainer/samples-44100'
-    library = scanLibrary(lib)
-    book = library[0]
+    #library = scanLibrary(lib)
+    #book = library[0]
     division = 20
-    origin, sizeo = readWave(book[0], division, samples=8820)
-    dest, sized = readWave(book[1], division, samples=8820)
+    #origin, sizeo = readWave(book[0], division)
+    #dest, sized = readWave(book[1], division)
 
-    #for i in range(len(origin)):
-    #    origin[i]=origin[i].flatten()
+    # #for i in range(len(origin)):
+    # #    origin[i]=origin[i].flatten()
 
-    #for i in range(len(dest)):
-    #    dest[i]=dest[i].flatten()
+    # #for i in range(len(dest)):
+    # #    dest[i]=dest[i].flatten()
 
-    #TODO: descomentar estas lineas:
-    #oridest = zip(origin,dest)
-    #random.shuffle(oridest)
-    #origin,dest=zip(*oridest)
+    # #TODO: descomentar estas lineas:
+    # #oridest = zip(origin,dest)
+    # #random.shuffle(oridest)
+    # #origin,dest=zip(*oridest)
     
+    origin, dest, sizeo, sized = loadLibrary(path, division)
     
-    brains = LimeBrain(sizeo, sizeo, sized, epoch=5, name='frankenstein')
-    print('Created Frankenstein with sizeo {0} and sized {1}'.format(sizeo, sized))
+    brains = LimeBrain(sizeo, sizeo, sized, epoch=1, name='frankenstein v. 2')
+    print('Created frankenstein v. 2 with sizeo {0} and sized {1}'.format(sizeo, sized))
+
     brains.train(origin, dest)
+
     brains.dumpBrain()
-    data, size = readWave('/trainer/samples-44100/1/Piano/-3-100-o.wav', division)
-    writeWave('PruebaFinal.wav', brains.run(data), size, division) 
+    #brains=loadBrain('frankenstein')
+    data, size = readWave('./trainer/samples-44100/1/Piano/-3-100-d.wav', division)
+    result = brains.run(data)
+    writeWave('PruebaFinal.wav',result , size, division) 
     
 
 
