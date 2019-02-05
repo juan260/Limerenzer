@@ -105,10 +105,13 @@ class LimeBrain:
             directory=self.name
         else:
             directory=name[0]
-        pickle.dump(self, './data/'+directory+'/brain.obj')
+        with open('./data/'+directory+'/brain.obj') as f:
+            pickle.dump(self, f)
 
 def loadBrain(name):
-    return pickle.load('./data/'+name+'/brain.obj')
+    with open('./data/'+name+'/brain.obj') as f:
+        loaded= pickle.load(f)
+    return loaded
 
 if __name__ == '__main__':
     lib= 'trainer/samples-44100'
