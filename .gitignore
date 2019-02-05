@@ -1,0 +1,5 @@
+*.pyc
+*.wav
+*.sf2
+*model*
+data/*
