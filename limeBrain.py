@@ -51,6 +51,10 @@ class LimeBrain:
         self.saver=tf.train.Saver()
         path='./data/'+name
         try:
+            os.mkdir('./data')
+        except OSError:
+            pass
+        try:
             os.mkdir(path)
         except OSError:
             shutil.rmtree(path)
@@ -111,8 +115,8 @@ if __name__ == '__main__':
     library = scanLibrary(lib)
     book = library[0]
     division = 20
-    origin, sizeo = readWave(book[0], division)
-    dest, sized = readWave(book[1], division)
+    origin, sizeo = readWave(book[0], division, samples=8820)
+    dest, sized = readWave(book[1], division, samples=8820)
 
     #for i in range(len(origin)):
     #    origin[i]=origin[i].flatten()
