@@ -12,7 +12,7 @@ class BrainError (Exception):
     def __str__(self):
         return self.value
 class LimeBrain:
-    def __init__(self, input_dim, hidden_dim, output_dim, epoch=250, learning_rate=0.001, name='Give_me_a_name'):
+    def __init__(self, input_dim, hidden_dim, output_dim, epoch=250, learning_rate=0.01, name='Give_me_a_name'):
         self.epoch=epoch
         self.learning_rate = learning_rate
         self.input_dim=input_dim
@@ -53,7 +53,7 @@ class LimeBrain:
             weights=tf.Variable(tf.random_normal([self.hidden_dim, self.output_dim]), dtype=tf.float32, name='weights')
             biases=tf.Variable(tf.zeros([self.output_dim], dtype=tf.float32), name='biases')
             decoded = tf.matmul(encoded,weights)+biases
-        
+
         self.input_data=input_data
         self.output_data=output_data
         self.encoded=encoded
@@ -73,7 +73,7 @@ class LimeBrain:
             if self.output_dim != len(out_train_data[i]):
                 raise BrainError('The output data has the wrong size. Expecting \
 {0} but recieved {1}'.format(int(self.output_dim), len(out_train_data[i])))
-        
+
         if len(in_train_data)!=len(out_train_data):
             raise BrainError('The input training data has a different length than the out training data')
 
@@ -85,7 +85,7 @@ class LimeBrain:
                     l, _ = sess.run([self.loss, self.train_op],
                         feed_dict={self.input_data: [in_train_data[j]],
                         self.output_data: [out_train_data[j]]})
-                    
+
                 if i%10:
                     print('epoch {0}: loss = {1}'.format(i,l))
                     self.saver.save(sess, './data/'+self.name+'/model.ckpt')
@@ -105,7 +105,7 @@ Expected {0} and got {1}'.format(len(dataIn), self.input_dim))
             result=  sess.run([self.decoded],
                 feed_dict={self.input_data : dataIn})
         return result[0]
-    
+
     def dumpBrain(self, *name):
         input_data=self.input_data
         output_data=self.output_data
@@ -126,7 +126,7 @@ Expected {0} and got {1}'.format(len(dataIn), self.input_dim))
         else:
             directory=name[0]
         #if not os.path.isfile('./data/'+directory+'/brain.obj'):
-        
+
         with open('./data/'+directory+'/brain.obj', 'w') as f:
             dill.dump(self, f)
         self.input_data=input_data
@@ -161,19 +161,27 @@ if __name__ == '__main__':
     # #oridest = zip(origin,dest)
     # #random.shuffle(oridest)
     # #origin,dest=zip(*oridest)
-    
-    origin, dest, sizeo, sized = loadLibrary(path, division)
-    
-    brains = LimeBrain(sizeo, sizeo, sized, epoch=1, name='frankenstein v. 2')
+    parts=100
+    origin, dest, sizeo, sized = loadLibrary(lib, division, parts, 0)
+    print('Loaded library')
+    brains = LimeBrain(sizeo, sizeo, sized, epoch = 5, learning_rate=0.1, name='frankenstein v. 2')
     print('Created frankenstein v. 2 with sizeo {0} and sized {1}'.format(sizeo, sized))
+    print('Starting first training')
 
     brains.train(origin, dest)
-
+    for i in range(1, parts):
+        print('Starting training {0}'.format(i))
+        origin, dest, sizeo, sized = loadLibrary(lib, division, parts, i)
+        print('Loaded library')
+        brains.train(origin, dest)
+        print('Trining complete')
     brains.dumpBrain()
     #brains=loadBrain('frankenstein')
+    print('Dump complete')
     data, size = readWave('./trainer/samples-44100/1/Piano/-3-100-d.wav', division)
+    print('Running model')
     result = brains.run(data)
-    writeWave('PruebaFinal.wav',result , size, division) 
-    
+    writeWave('PruebaFinal.wav',result , size, division)
+
 
 
