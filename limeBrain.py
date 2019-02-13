@@ -5,6 +5,7 @@ import random
 import dill
 import os
 import shutil
+import time
 
 class BrainError (Exception):
     def __init__(self, value='Error in the brain'):
@@ -89,6 +90,7 @@ class LimeBrain:
                 if i%10:
                     print('epoch {0}: loss = {1}'.format(i,l))
                     self.saver.save(sess, './data/'+self.name+'/model.ckpt')
+                time.sleep(60)
             self.saver.save(sess, './data/'+self.name+'/model.ckpt')
         self.trained=True
 
@@ -143,7 +145,7 @@ def loadBrain(name):
     loaded.buildBrain()
     return loaded
 
-if __name__ == '__main__':
+def trainModel(initial=0, parts=100, load=None, dumpRange=1):
     lib= 'trainer/samples-44100'
     #library = scanLibrary(lib)
     #book = library[0]
@@ -161,15 +163,24 @@ if __name__ == '__main__':
     # #oridest = zip(origin,dest)
     # #random.shuffle(oridest)
     # #origin,dest=zip(*oridest)
-    parts=100
-    origin, dest, sizeo, sized = loadLibrary(lib, division, parts, 0)
+    origin, dest, sizeo, sized = loadLibrary(lib, division, parts, initial)
     print('Loaded library')
-    brains = LimeBrain(sizeo, sizeo, sized, epoch = 5, learning_rate=0.1, name='frankenstein v. 2')
-    print('Created frankenstein v. 2 with sizeo {0} and sized {1}'.format(sizeo, sized))
+    if load:
+        brains=loadBrain(load)
+        print('Loaded '+ load)
+    else:
+        brains = LimeBrain(sizeo, sizeo, sized, epoch = 5, learning_rate=0.03, name='frankenstein v. 2')
+        print('Created frankenstein v. 2 with sizeo {0} and sized {1}'.format(sizeo, sized))
     print('Starting first training')
 
     brains.train(origin, dest)
-    for i in range(1, parts):
+    for i in range(initial+1, parts):
+        if (i%dumpRange)==0:
+            brains.dumpBrain()
+            f=open('PROGRESS.txt', 'w')
+            f.write('PROGRESS: '+str(i)+' completed.')
+            f.close()
+            print('Successfully dumped!')
         print('Starting training {0}'.format(i))
         origin, dest, sizeo, sized = loadLibrary(lib, division, parts, i)
         print('Loaded library')
@@ -182,6 +193,9 @@ if __name__ == '__main__':
     print('Running model')
     result = brains.run(data)
     writeWave('PruebaFinal.wav',result , size, division)
+
+if __name__ == '__main__':
+    trainModel()
 
 
 
